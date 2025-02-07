@@ -1,25 +1,10 @@
 #!/usr/bin/env python
 
-#########################################
-# Imports
-#########################################
-# - HMI Windows
-import  sys
-from gi.repository  import GLib, Gtk, GObject
-
-# - HMI communication
-from modbus         import ClientModbus as Client
-from modbus	    import ConnectionException 
-
-# - World environement
-from world          import *
-
-#########################################
-# HMI code
-#########################################
-# "Constants"
-HMI_SCREEN_WIDTH = 20
-HMI_SLEEP        = 1
+import sys
+from gi.repository import GLib, Gtk, GObject
+from modbus import ClientModbus as Client
+from modbus import ConnectionException
+from world import *
 
 class HMIWindow(Gtk.Window):
     def resetLabels(self):
@@ -31,9 +16,12 @@ class HMIWindow(Gtk.Window):
         self.connectionStatusValue.set_markup("<span weight='bold' foreground='red'>OFFLINE</span>")
 
     def __init__(self, address, port):
-        Gtk.Window.__init__(self, title="Bottle-filling factory - HMI - VirtuaPlant")
-
-        self.set_border_width(HMI_SCREEN_WIDTH)
+        super().__init__(title="Bottle-filling factory - HMI - VirtuaPlant")
+        
+        self.set_margin_start(20)
+        self.set_margin_end(20)
+        self.set_margin_top(20)
+        self.set_margin_bottom(20)
         
         self.client = Client(address, port=port)
 
@@ -43,7 +31,7 @@ class HMIWindow(Gtk.Window):
         grid = Gtk.Grid()
         grid.set_row_spacing(15)
         grid.set_column_spacing(10)
-        self.add(grid)
+        self.set_child(grid)
 
         # Main title label
         label = Gtk.Label()
@@ -52,50 +40,50 @@ class HMIWindow(Gtk.Window):
         elementIndex += 1
 
         # Bottle in position label
-        bottlePositionLabel = Gtk.Label("Bottle in position")
+        bottlePositionLabel = Gtk.Label(label="Bottle in position")
         bottlePositionValue = Gtk.Label()
         grid.attach(bottlePositionLabel, 0, elementIndex, 1, 1)
         grid.attach(bottlePositionValue, 1, elementIndex, 1, 1)
         elementIndex += 1
 
         # Nozzle status label
-        nozzleStatusLabel = Gtk.Label("Nozzle Status")
+        nozzleStatusLabel = Gtk.Label(label="Nozzle Status")
         nozzleStatusValue = Gtk.Label()
         grid.attach(nozzleStatusLabel, 0, elementIndex, 1, 1)
         grid.attach(nozzleStatusValue, 1, elementIndex, 1, 1)
         elementIndex += 1
 
         # Motor status label
-        motorStatusLabel = Gtk.Label("Motor Status")
+        motorStatusLabel = Gtk.Label(label="Motor Status")
         motorStatusValue = Gtk.Label()
         grid.attach(motorStatusLabel, 0, elementIndex, 1, 1)
         grid.attach(motorStatusValue, 1, elementIndex, 1, 1)
         elementIndex += 1
 
         # Level hit label
-        levelHitLabel = Gtk.Label("Level Hit")
+        levelHitLabel = Gtk.Label(label="Level Hit")
         levelHitValue = Gtk.Label()
         grid.attach(levelHitLabel, 0, elementIndex, 1, 1)
         grid.attach(levelHitValue, 1, elementIndex, 1, 1)
         elementIndex += 1
 
         # Process status
-        processStatusLabel = Gtk.Label("Process Status")
+        processStatusLabel = Gtk.Label(label="Process Status")
         processStatusValue = Gtk.Label()
         grid.attach(processStatusLabel, 0, elementIndex, 1, 1)
         grid.attach(processStatusValue, 1, elementIndex, 1, 1)
         elementIndex += 1
 
         # Connection status
-        connectionStatusLabel = Gtk.Label("Connection Status")
+        connectionStatusLabel = Gtk.Label(label="Connection Status")
         connectionStatusValue = Gtk.Label()
         grid.attach(connectionStatusLabel, 0, elementIndex, 1, 1)
         grid.attach(connectionStatusValue, 1, elementIndex, 1, 1)
         elementIndex += 1
 
         # Run and Stop buttons
-        runButton   = Gtk.Button("Run")
-        stopButton  = Gtk.Button("Stop")
+        runButton = Gtk.Button(label="Run")
+        stopButton = Gtk.Button(label="Stop")
 
         runButton.connect("clicked", self.setProcess, 1)
         stopButton.connect("clicked", self.setProcess, 0)
@@ -110,15 +98,15 @@ class HMIWindow(Gtk.Window):
         grid.attach(virtuaPlant, 0, elementIndex, 2, 1)
 
         # Attach Value Labels
-        self.processStatusValue     = processStatusValue
-        self.connectionStatusValue  = connectionStatusValue
-        self.levelHitValue          = levelHitValue
-        self.motorStatusValue       = motorStatusValue
-        self.bottlePositionValue    = bottlePositionValue
-        self.nozzleStatusValue      = nozzleStatusValue
+        self.processStatusValue = processStatusValue
+        self.connectionStatusValue = connectionStatusValue
+        self.levelHitValue = levelHitValue
+        self.motorStatusValue = motorStatusValue
+        self.bottlePositionValue = bottlePositionValue
+        self.nozzleStatusValue = nozzleStatusValue
 
         self.resetLabels()
-        GObject.timeout_add_seconds(HMI_SLEEP, self.update_status)
+        GLib.timeout_add_seconds(1, self.update_status)
 
     def setProcess(self, widget, data=None):
         try:
@@ -146,7 +134,7 @@ class HMIWindow(Gtk.Window):
                 self.motorStatusValue.set_markup("<span weight='bold' foreground='red'>OFF</span>")
 
             if regs[PLC_TAG_NOZZLE] == 1:
-                    self.nozzleStatusValue.set_markup("<span weight='bold' foreground='green'>OPEN</span>")
+                self.nozzleStatusValue.set_markup("<span weight='bold' foreground='green'>OPEN</span>")
             else:
                 self.nozzleStatusValue.set_markup("<span weight='bold' foreground='red'>CLOSED</span>")
 
@@ -164,19 +152,19 @@ class HMIWindow(Gtk.Window):
                 self.resetLabels()
         except:
             raise
-
         finally:
             return True
 
 def main():
-    GObject.threads_init()
-    win = HMIWindow(PLC_SERVER_IP, PLC_SERVER_PORT)
-
-    win.connect("delete-event", Gtk.main_quit)
-    win.connect("destroy", Gtk.main_quit)
-
-    win.show_all()
-    Gtk.main()
+    app = Gtk.Application(application_id='org.virtuaplant.bottlefilling')
+    
+    def on_activate(app):
+        win = HMIWindow(PLC_SERVER_IP, PLC_SERVER_PORT)
+        win.set_application(app)
+        win.present()
+    
+    app.connect('activate', on_activate)
+    return app.run(None)
 
 if __name__ == "__main__":
     sys.exit(main())
