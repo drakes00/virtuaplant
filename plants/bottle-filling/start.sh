@@ -2,7 +2,7 @@
 
 echo "VirtuaPlant -- Bottle-filling Factory"
 echo "- Starting MODBUS server"
-./modbus &
+./modbus.py &
 echo "- Starting World View"
 ./world.py &
 echo "- Starting HMI"

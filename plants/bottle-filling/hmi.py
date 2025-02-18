@@ -6,6 +6,7 @@ from modbus import ClientModbus as Client
 from modbus import ConnectionException
 from world import *
 
+
 class HMIWindow(Gtk.Window):
     def resetLabels(self):
         self.bottlePositionValue.set_markup("<span weight='bold' foreground='gray33'>N/A</span>")
@@ -17,12 +18,12 @@ class HMIWindow(Gtk.Window):
 
     def __init__(self, address, port):
         super().__init__(title="Bottle-filling factory - HMI - VirtuaPlant")
-        
+
         self.set_margin_start(20)
         self.set_margin_end(20)
         self.set_margin_top(20)
         self.set_margin_bottom(20)
-        
+
         self.client = Client(address, port=port)
 
         elementIndex = 0
@@ -92,6 +93,28 @@ class HMIWindow(Gtk.Window):
         grid.attach(stopButton, 1, elementIndex, 1, 1)
         elementIndex += 1
 
+        # NEW: Nozzle Control Buttons
+        openNozzleButton = Gtk.Button(label="Open Nozzle")
+        closeNozzleButton = Gtk.Button(label="Close Nozzle")
+
+        openNozzleButton.connect("clicked", self.controlNozzle, 1)
+        closeNozzleButton.connect("clicked", self.controlNozzle, 0)
+
+        grid.attach(openNozzleButton, 0, elementIndex, 1, 1)
+        grid.attach(closeNozzleButton, 1, elementIndex, 1, 1)
+        elementIndex += 1
+
+        # NEW: Conveyor Motor Control Buttons
+        startMotorButton = Gtk.Button(label="Start Conveyor")
+        stopMotorButton = Gtk.Button(label="Stop Conveyor")
+
+        startMotorButton.connect("clicked", self.controlMotor, 1)
+        stopMotorButton.connect("clicked", self.controlMotor, 0)
+
+        grid.attach(startMotorButton, 0, elementIndex, 1, 1)
+        grid.attach(stopMotorButton, 1, elementIndex, 1, 1)
+        elementIndex += 1
+
         # VirtuaPlant branding
         virtuaPlant = Gtk.Label()
         virtuaPlant.set_markup("<span size='small'>VirtuaPlant - HMI</span>")
@@ -111,6 +134,20 @@ class HMIWindow(Gtk.Window):
     def setProcess(self, widget, data=None):
         try:
             self.client.write(PLC_RW_ADDR + PLC_TAG_RUN, data)
+        except:
+            pass
+
+    def controlNozzle(self, widget, state):
+        """Opens (1) or Closes (0) the nozzle manually"""
+        try:
+            self.client.write(PLC_RW_ADDR + PLC_TAG_NOZZLE, state)
+        except:
+            pass
+
+    def controlMotor(self, widget, state):
+        """Starts (1) or Stops (0) the conveyor belt manually"""
+        try:
+            self.client.write(PLC_RW_ADDR + PLC_TAG_MOTOR, state)
         except:
             pass
 
@@ -155,16 +192,18 @@ class HMIWindow(Gtk.Window):
         finally:
             return True
 
+
 def main():
     app = Gtk.Application(application_id='org.virtuaplant.bottlefilling')
-    
+
     def on_activate(app):
         win = HMIWindow(PLC_SERVER_IP, PLC_SERVER_PORT)
         win.set_application(app)
         win.present()
-    
+
     app.connect('activate', on_activate)
     return app.run(None)
+
 
 if __name__ == "__main__":
     sys.exit(main())
